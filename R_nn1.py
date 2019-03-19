@@ -119,6 +119,25 @@ from keras.models import Sequential
 from keras.layers import Dense, CuDNNGRU
 from keras.optimizers import adam
 from keras.callbacks import ModelCheckpoint
+import tensorflow as tf
+
+#%% Check that gpu is available
+
+from tensorflow.python.client import device_lib
+assert 'GPU' in str(device_lib.list_local_devices())
+
+# confirm Keras sees the GPU
+from keras import backend
+assert len(backend.tensorflow_backend._get_available_gpus()) > 0
+
+# confirm PyTorch sees the GPU
+from torch import cuda
+assert cuda.is_available()
+assert cuda.device_count() > 0
+print(cuda.get_device_name(cuda.current_device()))
+
+
+#%%
 
 cb = [ModelCheckpoint("model.hdf5", save_best_only=True, period=3)]
 
@@ -128,17 +147,19 @@ model.add(Dense(10, activation='relu'))
 model.add(Dense(1))
 
 model.summary()
+#%%
 
 # Compile and fit model
 model.compile(optimizer=adam(lr=0.0005), loss="mae")
-
 history = model.fit_generator(train_gen,
                               steps_per_epoch=1000,
                               epochs=30,
                               verbose=0,
                               callbacks=cb,
                               validation_data=valid_gen,
-                              validation_steps=200)
+                              validation_steps=200,
+                              use_multiprocessing=True,
+                              workers = 8)
 
 # Visualize accuracies
 import matplotlib.pyplot as plt
